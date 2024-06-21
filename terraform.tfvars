@@ -9,18 +9,18 @@ backend = "buc-terraform-abc-tst"
 folder_map = {
   "fldr-digitalproduct": {
     "fldr-mlai": {
-      "fldr-dev": [],
-      "fldr-prod": []
+      "fldr-mlai-dev": [],
+      "fldr-mlai-prod": []
     }
   },
   "fldr-informtiontech": {
     "fldr-cloudsharedservices": {
-      "fldr-dev": [],
-      "fldr-prod": []
+      "fldr-css-dev": [],
+      "fldr-css-prod": []
     },
     "fidr-enterprisedata": {
-      "fldr-dev": [],
-      "fldr-prod": []
+      "fldr-css-dev": [],
+      "fldr-css-prod": []
     }
   },
   "fldr-common": []
