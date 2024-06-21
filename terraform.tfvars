@@ -18,7 +18,7 @@ folder_map = {
       "fldr-css-dev": [],
       "fldr-css-prod": []
     },
-    "fidr-enterprisedata": {
+    "fldr-enterprisedata": {
       "fldr-css-dev": [],
       "fldr-css-prod": []
     }
