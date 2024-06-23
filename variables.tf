@@ -24,14 +24,14 @@ variable "folder_map" {
   description = "Folder structure as a map"
 }
 
-# variable "projects" {
-#   type = map(object({
-#     name          = string
-#     folder_name  = string   # Specify the folder name for the project
-#     activate_apis = list(string)
-#     labels        = map(string)
-#   }))
-# }
+variable "projects" {
+  type = map(object({
+    name          = string
+    folder_name  = string   # Specify the folder name for the project
+    activate_apis = list(string)
+    labels        = map(string)
+  }))
+}
 
 variable "shared_vpc_hosts" {
   type = map(object({
@@ -40,8 +40,12 @@ variable "shared_vpc_hosts" {
       name           = string
       region         = string
       ip_cidr_range = string
+      flow_logs = bool
+      subnet_flow_logs_interval = string
+      subnet_flow_logs_sampling = number
+      subnet_flow_logs_metadata = string
     }))
-    service_project = string
+    service_project = list(string)
   }))
 }
 

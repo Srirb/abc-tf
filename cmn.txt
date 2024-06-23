@@ -1,0 +1,383 @@
+#variables.tf
+
+variable "org_id" {
+  type        = string
+  description = "The ID of the Google Cloud organization."
+}
+
+variable "billing_account" {
+  type        = string
+  description = "The ID of the billing account to associate projects with."
+}
+
+variable "region" {
+  type        = string
+  description = "The default region for resources."
+}
+
+variable "backend" {
+  type = string
+  description = "Bucket-name for storing terraform remote state"
+}
+
+variable "folder_map" {
+  type        = any
+  description = "Folder structure as a map"
+}
+
+variable "projects" {
+  type = map(object({
+    name          = string
+    folder_name  = string   # Specify the folder name for the project
+    activate_apis = list(string)
+    labels        = map(string)
+  }))
+}
+
+#terraform.tfvars
+
+org_id         = ""
+billing_account = ""
+region         = "us-central1"
+backend = "buc-terraform-abc-tst"
+# Folder Structure
+
+folder_map = {
+  "fldr-digitalproduct": {
+    "fldr-mlai": {
+      "fldr-mlai-dev": [],
+      "fldr-mlai-prod": []
+    }
+  },
+  "fldr-informtiontech": {
+    "fldr-cloudsharedservices": {
+      "fldr-css-dev": [],
+      "fldr-css-prod": []
+    },
+    "fldr-enterprisedata": {
+      "fldr-ed-dev": [],
+      "fldr-ed-prod": []
+    }
+  },
+  "fldr-common": []
+}
+
+# Project Configurations
+projects = {
+  "prj-dev-mlai-001" = {
+    name          = "prj-dev-mlai-001"
+    folder_name  = "fldr-mlai-dev"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "dev" }
+  },
+  "prj-prd-mlai-001" = {
+    name          = "prj-prd-mlai-001"
+    folder_name  = "fldr-mlai-prod"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "prod" }
+  },
+  "prj-dev-css-001" = {
+    name          = "prj-dev-css-001"
+    folder_name  = "fldr-css-dev"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "dev" }
+  },
+  "prj-prod-css-001" = {
+    name          = "prj-prod-css-001"
+    folder_name  = "fldr-css-prod"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "prod" }
+  },
+  "prj-dev-ed-001" = {
+    name          = "prj-dev-ed-001"
+    folder_name  = "fldr-ed-dev"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "dev" }
+  },
+  "prj-prd-ed-001" = {
+    name          = "prj-prd-ed-001"
+    folder_name  = "fldr-ed-prod"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "prod" }
+  },
+  "prj-shared-vpc-prd" = {
+    name          = "prj-shared-vpc-prd"
+    folder_name  = "fldr-common"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "dev" }
+  },
+  "prj-shared-vpc-dev" = {
+    name          = "prj-shared-vpc-dev"
+    folder_name  = "fldr-common"
+    activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
+    labels        = { environment = "prod" }
+  },
+  "prj-logmon-prod" = {
+    name          = "prj-logmon-prd"
+    folder_name  = "fldr-common"
+    activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
+    labels        = { environment = "prod" }
+  },
+  "prj-logmon-dev" = {
+    name          = "prj-logmon-dev"
+    folder_name  = "fldr-common"
+    activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
+    labels        = { environment = "dev" }
+  },
+  "prj-hub-vpc" = {
+    name          = "prj-hub-vpc"
+    folder_name  = "fldr-common"
+    activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
+  }
+}
+
+#folders.tf
+/******************************************************************
+ * CREATING A LOCAL VARIABLE TO GET THE LIST OF FOLDERS TO CREATE *
+ ******************************************************************/
+locals {
+  sub_folders1_var = compact(flatten([for k, i in var.folder_map : length(i) == 0 ? [] : [for ip1, op1 in i : join("=1>", [k, ip1])]]))
+  sub_folders2_var = compact(flatten([for k, i in var.folder_map : length(i) == 0 ? [] : [for ip1, op1 in i : length(op1) == 0 ? [] : [for ip2, op2 in op1 : join("=2>", [join("=1>", [k, ip1]), ip2])]]]))
+  sub_folders3_var = compact(flatten([for k, i in var.folder_map : length(i) == 0 ? [] : [for ip1, op1 in i : length(op1) == 0 ? [] : [for ip2, op2 in op1 : length(op2) == 0 ? [] : [for ip3, op3 in op2 : join("=3>", [join("=2>", [join("=1>", [k, ip1]), ip2]), ip3])]]]]))
+}
+
+/***************************
+ * CREATING THE TOP FOLDER *
+ ***************************/
+module "folders" {
+  source  = "terraform-google-modules/folders/google"
+  version = "~> 4.0"
+
+  for_each = var.folder_map
+  parent   = "organizations/${var.org_id}"
+  names    = each.key[*]
+}
+
+/************************************
+ * CREATING THE LEVEL 1 SUB FOLDERS *
+ ************************************/
+module "sub_folders1" {
+  source  = "terraform-google-modules/folders/google"
+  version = "~> 4.0"
+
+  for_each = toset(local.sub_folders1_var)
+  parent   = module.folders[element(split("=1>", each.value), 0)].id
+  names    = [element(split("=1>", each.value), 1)]
+}
+
+
+/************************************
+ * CREATING THE LEVEL 2 SUB FOLDERS *
+ ************************************/
+module "sub_folders2" {
+  source  = "terraform-google-modules/folders/google"
+  version = "~> 4.0"
+
+  for_each = toset(local.sub_folders2_var)
+  parent   = module.sub_folders1[element(split("=2>", each.value), 0)].id
+  names    = [element(split("=2>", each.value), 1)]
+}
+
+/************************************
+ * CREATING THE LEVEL 3 SUB FOLDERS *
+ ************************************/
+module "sub_folders3" {
+  source  = "terraform-google-modules/folders/google"
+  version = "~> 4.0"
+
+  for_each = toset(local.sub_folders3_var)
+  parent   = module.sub_folders2[element(split("=3>", each.value), 0)].id
+  names    = [element(split("=3>", each.value), 1)]
+}
+
+# Output.tf
+output "folder_id" {
+  value = [[for k, v in var.folder_map : module.folders[k].ids], [for i in local.sub_folders1_var : module.sub_folders1[i].ids], [for j in local.sub_folders2_var : module.sub_folders2[j].ids], [for l in local.sub_folders3_var : module.sub_folders3[l].ids]]
+}
+
+
+#variables.tf
+
+variable "shared_vpc_hosts" {
+  type = map(object({
+    network_name    = string
+    subnets         = list(object({
+      name           = string
+      region         = string
+      ip_cidr_range = string
+      flow_logs = bool
+      subnet_flow_logs_interval = string
+      subnet_flow_logs_sampling = number
+      subnet_flow_logs_metadata = string
+    }))
+    service_project = string
+  }))
+}
+
+variable "vpc_peerings" {
+  type        = map(string)
+  description = "Map of VPC peering connections. Keys are peering names, values are the names of the Shared VPCs to peer with."
+  default     = {}
+}
+
+
+
+#terraform.tfvars
+
+# Shared VPC Configurations
+shared_vpc_hosts = {
+  "prj-hub-vpc" = {
+    network_name    = "hub-base"
+    subnets         = [
+      {
+        name           = "sb-hub-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.62.0/24"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      },
+      {
+        name           = "sb-hub-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.63.0/24"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      }
+    ]
+    service_project = null # no service projects for this host
+  },
+  "prj-shared-vpc-dev" = {
+    network_name = "non-prod-base"
+    subnets = [
+      {
+        name           = "sb-dev-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.8.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      },
+      {
+        name           = "sb-dev-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.12.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      }
+    ]
+    service_project = ["prj-dev-mlai-001", "prj-dev-css-001", "prj-dev-ed-001"]
+  },
+  "prj-shared-vpc-prd" = {
+    network_name = "prod-base"
+    subnets = [
+      {
+        name           = "sb-dev-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.0.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      },
+      {
+        name           = "sb-dev-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.4.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      }
+    ]
+    service_project = ["prj-prd-mlai-001", "prj-prod-css-001", "prj-prd-ed-001"]
+  }
+}
+
+vpc_peerings = {
+  "hub-to-dev"    = "prj-shared-vpc-dev"
+  "hub-to-prod"   = "prj-shared-vpc-prd"
+}
+
+Need vpc.tf and peering.tf to make vpc as shared vpc network and peer the shared vpc host project with the hub vpc project
+go through the given example for creating the nessesary modules (Note the given example is for ref only and check for any errors)
+
+# vpc.tf
+
+locals {
+  # Filter out projects without a 'name' attribute
+project_factory = module.project_factory
+}
+
+# Shared VPC Host Projects
+module "shared_vpc_host" {
+  source  = "terraform-google-modules/network/google"
+  version = "~> 9.1"
+
+  for_each = var.shared_vpc_hosts
+
+  project_id              = local.project_factory[each.key].project_id
+  network_name            = each.value.network_name
+  routing_mode            = "GLOBAL"
+  delete_default_internet_gateway_routes = true
+
+  subnets = [
+    for subnet in each.value.subnets :
+    {
+      subnet_name               = subnet.name
+      subnet_region             = subnet.region
+      subnet_ip                 = subnet.ip_cidr_range
+      subnet_private_access     = true
+      subnet_flow_logs          = subnet.flow_logs
+      subnet_flow_logs_interval = subnet.subnet_flow_logs_interval
+      subnet_flow_logs_sampling = subnet.subnet_flow_logs_sampling
+      subnet_flow_logs_metadata = subnet.subnet_flow_logs_metadata
+    }
+  ]
+
+  depends_on = [
+    module.project_factory,
+    google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
+  ]
+}
+
+# Enable Shared VPC Host Projects
+resource "google_compute_shared_vpc_host_project" "host" {
+  for_each = var.shared_vpc_hosts
+  project = local.project_factory[each.key].project_id
+}
+
+# Shared VPC Service Project Attachments
+resource "google_compute_shared_vpc_service_project" "service_project" {
+  for_each           = { for k, v in var.shared_vpc_hosts : k => v if v.service_project != null }
+  host_project       = local.project_factory[each.key].project_id       
+  service_project    = local.project_factory[each.value.service_project].project_id  
+
+  depends_on = [
+    google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
+  ]
+}
+
+# peering.tf
+
+module "peering" {
+  source                     = "terraform-google-modules/network/google//modules/network-peering"
+  version                    = "~> 5.0"  # Match the network module version
+  for_each                   = var.vpc_peerings
+  prefix                     = "peering"       # Optional prefix for peering names
+  local_network              = module.shared_vpc_host[each].network_self_link
+  peer_network               = module.shared_vpc_host[each.value].network_self_link
+
+  # Optional: Export custom routes if needed
+  export_local_custom_routes = true  
+  export_peer_custom_routes  = true
+}
+
+
+

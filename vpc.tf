@@ -1,51 +1,62 @@
-# locals {
+locals {
+project_factory = module.project_factory
+}
 
-#   # Filter out projects without a 'name' attribute
-# project_factory = module.project_factory
-# }
+/*************************************
+ * CREATING SHARED VPC HOST PROJECTS *
+ *************************************/
 
-# # Shared VPC Host Projects
-# module "shared_vpc_host" {
-#   source  = "terraform-google-modules/network/google"
-#   version = "~> 9.1"
+module "shared_vpc_host" {
+  source  = "terraform-google-modules/network/google"
+  version = "~> 9.1"
 
-#   for_each = var.shared_vpc_hosts
+  for_each = var.shared_vpc_hosts
 
-#   project_id              = local.project_factory[each.key].project_id
-#   network_name            = each.value.network_name
-#   routing_mode            = "GLOBAL"
-#   delete_default_internet_gateway_routes = true
+  project_id              = local.project_factory[each.key].project_id
+  network_name            = each.value.network_name
+  routing_mode            = "GLOBAL"
+  delete_default_internet_gateway_routes = true
 
-#   subnets = [
-#     for subnet in each.value.subnets :
-#     {
-#       subnet_name           = subnet.name
-#       subnet_region         = subnet.region
-#       subnet_ip             = subnet.ip_cidr_range
-#       subnet_private_access = true
-#     }
-#   ]
+  subnets = [
+    for subnet in each.value.subnets :
+    {
+      subnet_name               = subnet.name
+      subnet_region             = subnet.region
+      subnet_ip                 = subnet.ip_cidr_range
+      subnet_private_access     = true
+      subnet_flow_logs          = subnet.flow_logs
+      subnet_flow_logs_interval = subnet.subnet_flow_logs_interval
+      subnet_flow_logs_sampling = subnet.subnet_flow_logs_sampling
+      subnet_flow_logs_metadata = subnet.subnet_flow_logs_metadata
+    }
+  ]
 
-#   depends_on = [
-#     module.project_factory,
-#     google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
-#   ]
-# }
+  depends_on = [
+    module.project_factory,
+    google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
+  ]
+}
 
-# # Enable Shared VPC Host Projects
-# resource "google_compute_shared_vpc_host_project" "host" {
-#   for_each = var.shared_vpc_hosts
-#   project = local.project_factory[each.key].project_id
-# }
+/*************************************
+ * ENABLING SHARED VPC HOST PROJECTS *
+ *************************************/
 
-# # Shared VPC Service Project Attachments
-# resource "google_compute_shared_vpc_service_project" "service_project" {
-#   for_each           = { for k, v in var.shared_vpc_hosts : k => v if v.service_project != null }
-#   host_project       = local.project_factory[each.key].project_id       
-#   service_project    = local.project_factory[each.value.service_project].project_id  
+resource "google_compute_shared_vpc_host_project" "host" {
+  for_each = var.shared_vpc_hosts
+  project = local.project_factory[each.key].project_id
+}
 
-#   depends_on = [
-#     google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
-#   ]
-# }
+/******************************************
+ * SHARED VPC SERVICE PROJECT ATTACHMENTS *
+ ******************************************/
+
+resource "google_compute_shared_vpc_service_project" "service_project" {
+  for_each           = { for k, v in var.shared_vpc_hosts : k => v if v.service_project != null }
+  host_project       = local.project_factory[each.key].project_id       
+  service_project    = [for sp in each.value.service_project : local.project_factory[sp].project_id]  
+
+  depends_on = [
+    google_compute_shared_vpc_host_project.host # Wait for host project to be enabled
+  ]
+}
 

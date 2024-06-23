@@ -1,7 +1,7 @@
 # Organization and Billing
 org_id         = "312552542091"
 billing_account = "01EAA1-C5FBBB-98F223"
-region         = "us-central1"
+region         = "australia-southeast1"
 backend = "buc-terraform-abc-tst"
 
 # Folder Structure
@@ -19,8 +19,8 @@ folder_map = {
       "fldr-css-prod": []
     },
     "fldr-enterprisedata": {
-      "fldr-css-dev": [],
-      "fldr-css-prod": []
+      "fldr-ed-dev": [],
+      "fldr-ed-prod": []
     }
   },
   "fldr-common": []
@@ -30,131 +30,149 @@ folder_map = {
 projects = {
   "prj-dev-mlai-001" = {
     name          = "prj-dev-mlai-001"
-    parent_folder_id  = "Dev"
+    folder_name  = "fldr-mlai-dev"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "dev" }
   },
   "prj-prd-mlai-001" = {
     name          = "prj-prd-mlai-001"
-    parent_folder_id  = "Prod"
+    folder_name  = "fldr-mlai-prod"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "prod" }
   },
   "prj-dev-css-001" = {
     name          = "prj-dev-css-001"
-    parent_folder_id  = "Non-Prod"
+    folder_name  = "fldr-css-dev"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "dev" }
   },
   "prj-prod-css-001" = {
     name          = "prj-prod-css-001"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-css-prod"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "prod" }
   },
   "prj-dev-ed-001" = {
     name          = "prj-dev-ed-001"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-ed-dev"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "dev" }
   },
   "prj-prd-ed-001" = {
     name          = "prj-prd-ed-001"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-ed-prod"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
     labels        = { environment = "prod" }
   },
   "prj-shared-vpc-prd" = {
     name          = "prj-shared-vpc-prd"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-common"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
-    labels        = { environment = "commons-networking-dev" }
+    labels        = { environment = "dev" }
   },
   "prj-shared-vpc-dev" = {
     name          = "prj-shared-vpc-dev"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-common"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
-    labels        = { environment = "commons-networking-prod" }
+    labels        = { environment = "prod" }
   },
   "prj-logmon-prod" = {
     name          = "prj-logmon-prd"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-common"
     activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
-    labels        = { environment = "commons-logging-prod" }
+    labels        = { environment = "prod" }
   },
   "prj-logmon-dev" = {
     name          = "prj-logmon-dev"
-    parent_folder_id  = "Commons"
+    folder_name  = "fldr-common"
     activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
-    labels        = { environment = "commons-logging-dev" }
+    labels        = { environment = "dev" }
+  },
+  "prj-hub-vpc" = {
+    name          = "prj-hub-vpc"
+    folder_name  = "fldr-common"
+    activate_apis = ["monitoring.googleapis.com","logging.googleapis.com"]
+    labels        = { environment = "hub" }
   }
 }
 
 # Shared VPC Configurations
 shared_vpc_hosts = {
-  "hub-net-central" = {
-    network_name    = "hub-centralized-vpc"
+  "prj-hub-vpc" = {
+    network_name    = "hub-base"
     subnets         = [
       {
-        name           = "hub-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.0.0/22"
+        name           = "sb-hub-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.62.0/24"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+      },
+      {
+        name           = "sb-hub-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.63.0/24"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       }
     ]
     service_project = null # no service projects for this host
   },
-  "prj-dev-ed-001" = {
-    network_name = "dev-shared-vpc"
+  "prj-shared-vpc-dev" = {
+    network_name = "non-prod-base"
     subnets = [
       {
-        name           = "app-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.20.0/22"
+        name           = "sb-dev-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.8.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       },
       {
-        name           = "db-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.24.0/22"
+        name           = "sb-dev-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.12.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       }
     ]
     service_project = "prj-dev-mlai-001"
   },
-  "prod-net-central" = {
-    network_name = "prod-shared-vpc"
+  "prj-shared-vpc-prd" = {
+    network_name = "prod-base"
     subnets = [
       {
-        name           = "app-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.4.0/22" 
+        name           = "sb-dev-shared-base-1"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.0.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       },
       {
-        name           = "db-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.8.0/22"
+        name           = "sb-dev-shared-base-2"
+        region         = "australia-southeast1"
+        ip_cidr_range = "10.146.4.0/22"
+        flow_logs = "true"
+        subnet_flow_logs_interval = "INTERVAL_10_MIN"
+        subnet_flow_logs_sampling = 1
+        subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       }
     ]
-    service_project = "prod-ctrl-v2"
-  },
-  "non-prod-net-central" = {
-    network_name = "non-prod-shared-vpc"
-    subnets = [
-      {
-        name           = "app-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.12.0/22"
-      },
-      {
-        name           = "db-subnet"
-        region         = "us-central1"
-        ip_cidr_range = "10.220.16.0/22"
-      }
-    ]
-    service_project = "non-prod-ctrl-v2"
+    service_project = "prj-prd-mlai-001"
   }
 }
 
 vpc_peerings = {
-  "hub-to-dev"    = "prj-dev-ed-001"
-  "hub-to-prod"   = "prod-net-central"
-  "hub-to-nonprod" = "non-prod-net-central"
+  "prj-hub-vpc"    = "prj-shared-vpc-dev"
+  "prj-hub-vpc"   = "prj-shared-vpc-prd"
 }
