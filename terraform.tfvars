@@ -5,7 +5,6 @@ region         = "australia-southeast1"
 backend = "buc-terraform-abc-tst"
 
 # Folder Structure
-
 folder_map = {
   "fldr-digitalproduct": {
     "fldr-mlai": {
@@ -68,13 +67,13 @@ projects = {
     name          = "prj-shared-vpc-prd"
     folder_name  = "fldr-common"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
-    labels        = { environment = "dev" }
+    labels        = { environment = "prod" }
   },
   "prj-shared-vpc-dev" = {
     name          = "prj-shared-vpc-dev"
     folder_name  = "fldr-common"
     activate_apis = ["compute.googleapis.com","iam.googleapis.com","serviceusage.googleapis.com"]
-    labels        = { environment = "prod" }
+    labels        = { environment = "dev" }
   },
   "prj-logmon-prod" = {
     name          = "prj-logmon-prd"
@@ -144,7 +143,7 @@ shared_vpc_hosts = {
         subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       }
     ]
-    service_project = "prj-dev-mlai-001"
+    service_project = ["prj-dev-mlai-001", "prj-dev-css-001", "prj-dev-ed-001"]
   },
   "prj-shared-vpc-prd" = {
     network_name = "prod-base"
@@ -168,9 +167,11 @@ shared_vpc_hosts = {
         subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       }
     ]
-    service_project = "prj-prd-mlai-001"
+    service_project = ["prj-prd-mlai-001", "prj-prod-css-001", "prj-prd-ed-001"]
   }
 }
+
+#vpc peering attachments
 
 vpc_peerings = {
   "prj-hub-vpc"    = "prj-shared-vpc-dev"
